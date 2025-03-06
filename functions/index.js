@@ -20,7 +20,7 @@ admin.initializeApp();
 
 const db = getFirestore();
 
-exports.updateRankings = onSchedule("every day 00:00", async (event) => {
+exports.updateRankings = onSchedule("every day 01:30", async (event) => {
   try {
     const year = "2025";
     const statId = "186";
