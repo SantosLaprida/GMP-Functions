@@ -12,15 +12,19 @@
 // const functions = require("firebase-functions/v2");
 const {onSchedule} = require("firebase-functions/v2/scheduler");
 const admin = require("firebase-admin");
-const {getFirestore} = require("firebase-admin/firestore");
-const {fetchRankings} = require("./api/golfApi");
-// const {initializeApp} = require("firebase-admin/app");
 
 admin.initializeApp();
 
+const {getFirestore} = require("firebase-admin/firestore");
+const {fetchRankings} = require("./api/golfApi");
+const {getActiveTournament} = require("./utils/utils");
+const {getNextTournament} = require("./utils/utils");
+// const {initializeApp} = require("firebase-admin/app");
+
+
 const db = getFirestore();
 
-exports.updateRankings = onSchedule("every day 01:30", async (event) => {
+exports.updateRankings = onSchedule("every sunday 02:30", async (event) => {
   try {
     const year = "2025";
     const statId = "186";
@@ -29,17 +33,60 @@ exports.updateRankings = onSchedule("every day 01:30", async (event) => {
 
     for (const player of rankings) {
       const playerDocRef = db.collection("I_MaestroJugadores").
-          doc(player.id);
-      await playerDocRef.update({
-        lastname: player.lastname,
-        firstname: player.firstname,
-        name: player.firstname + " " + player.lastname,
+          doc(player.playerId);
+      await playerDocRef.set({
+        lastname: player.lastName,
+        firstname: player.firstName,
+        name: player.fullName,
         ranking: player.rank,
-      });
+      },
+      {merge: true},
+      );
     }
     console.log("Rankings updated successfully");
   } catch (error) {
     console.error("Error fetching or updating rankings", error);
+    return;
+  }
+});
+
+exports.activateTournament = onSchedule("every friday 06:10", async (event) => {
+  const date = new Date();
+  const year = date.getFullYear();
+  try {
+    const activeTournament = await getActiveTournament(year);
+    if (activeTournament.length > 0) {
+      const activeTournamentId = activeTournament[0];
+      const docSnap = await db.collection("I_Torneos").doc(year).
+          collection("Tournaments").doc(activeTournamentId).get();
+
+      if (docSnap.exists) {
+        const order = docSnap.data().order;
+        await docSnap.ref.update({
+          activo: 0,
+        });
+
+        console.log("Tournament desactivated ", activeTournamentId);
+
+        const nextTournamentId = await getNextTournament(year, order);
+        const documentSnapshot = await db.collection("I_Torneos").doc(year).
+            collection("Tournaments").doc(nextTournamentId).get();
+        await documentSnapshot.ref.update({
+          activo: 1,
+          apuestas: 1,
+        });
+        console.log("Tournament activated ", nextTournamentId);
+      } else {
+        console.log("No document Found!");
+        return;
+      }
+    } else {
+      console.log("No active tournaments found");
+      return;
+    }
+  } catch (error) {
+    console.error("Error activating tournament ", error);
+    throw error;
   }
 });
 
