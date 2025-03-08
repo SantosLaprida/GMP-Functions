@@ -24,9 +24,10 @@ const {getNextTournament} = require("./utils/utils");
 
 const db = getFirestore();
 
-exports.updateRankings = onSchedule("every sunday 02:30", async (event) => {
+exports.updateRankings = onSchedule("every monday 00:00", async (event) => {
   try {
-    const year = "2025";
+    const date = new Date();
+    const year = date.getFullYear();
     const statId = "186";
 
     const rankings = await fetchRankings(year, statId);
@@ -50,7 +51,7 @@ exports.updateRankings = onSchedule("every sunday 02:30", async (event) => {
   }
 });
 
-exports.activateTournament = onSchedule("every friday 06:10", async (event) => {
+exports.activateTournament = onSchedule("every monday 07:00", async (event) => {
   const date = new Date();
   const year = date.getFullYear();
   try {
