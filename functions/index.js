@@ -17,8 +17,10 @@ admin.initializeApp();
 
 const {getFirestore} = require("firebase-admin/firestore");
 const {fetchRankings} = require("./api/golfApi");
+const {fetchPlayers} = require("./api/golfApi");
 const {getActiveTournament} = require("./utils/utils");
 const {getNextTournament} = require("./utils/utils");
+const {createPlayers} = require("./utils/utils");
 // const {initializeApp} = require("firebase-admin/app");
 
 
@@ -53,7 +55,7 @@ exports.updateRankings = onSchedule("every monday 00:00", async (event) => {
 
 exports.activateTournament = onSchedule("every monday 07:00", async (event) => {
   const date = new Date();
-  const year = date.getFullYear();
+  const year = date.getFullYear().toString();
   try {
     const activeTournament = await getActiveTournament(year);
     if (activeTournament.length > 0) {
@@ -77,6 +79,8 @@ exports.activateTournament = onSchedule("every monday 07:00", async (event) => {
           apuestas: 1,
         });
         console.log("Tournament activated ", nextTournamentId);
+        const players = await fetchPlayers(1, nextTournamentId, year);
+        await createPlayers(db, year, players, nextTournamentId);
       } else {
         console.log("No document Found!");
         return;

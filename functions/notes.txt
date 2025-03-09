@@ -1,3 +1,6 @@
 npm run lint -- --fix
 
 npm run lint
+
+
+Year to access rapid api calls -> getFullUTCYear(), but accessing firestore collection, is to string

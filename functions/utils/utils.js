@@ -41,4 +41,40 @@ exports.getNextTournament = async (year, order) => {
   }
 };
 
+exports.createPlayers = async (db, year, players, tournamentId) => {
+  try {
+    const tournamentDocRef = db.collection("I_Torneos").doc(year)
+        .collection("Tournaments").doc(tournamentId);
+    const playerDocs = await db.collection("I_MaestroJugadores")
+        .get();
+
+    const playerRanks = {};
+    playerDocs.forEach((doc) => {
+      const playerId = doc.id;
+      playerRanks[playerId] = doc.data().ranking || 0;
+    });
+
+    for (const player of players) {
+      const playerId = player.playerId;
+      const rank = playerRanks[playerId] || 0;
+
+      const playerData = {
+        firstName: player.firstName,
+        lastName: player.lastName,
+        name: `${player.firstName} ${player.lastName}`,
+        idPlayer: playerId,
+        apuestas: 0,
+        rank: rank,
+      };
+
+      await tournamentDocRef.collection("I_Players").doc(playerId).
+          set(playerData);
+    }
+    console.log("All players created successfully!");
+  } catch (error) {
+    console.error("Problem creating I_Players", error);
+  }
+};
+
+
 // node testGetActiveTournament.js
