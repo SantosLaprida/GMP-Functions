@@ -25,13 +25,13 @@ const fetchPlayers = async (orgId, tournId, year) => {
     const response = await axios.get("https://live-golf-data.p.rapidapi.com/tournament", {
       params: {orgId, tournId, year},
       headers: {
-        "X-RapidAPI-Key": rapidApiKey,
+        "X-RapidAPI-Key": rapidApiKey.value(),
         "X-RapidAPI-Host": "live-golf-data.p.rapidapi.com",
       },
     });
     return response.data.players;
   } catch (error) {
-    console.error("Error fetching rankings:", error);
+    console.error("Error fetching Players:", error);
     throw error;
   }
 };

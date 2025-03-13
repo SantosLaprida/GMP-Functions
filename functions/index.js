@@ -53,7 +53,7 @@ exports.updateRankings = onSchedule("every monday 00:00", async (event) => {
   }
 });
 
-exports.activateTournament = onSchedule("every monday 07:00", async (event) => {
+exports.activateTournament = onSchedule("every monday 17:00", async (event) => {
   const date = new Date();
   const year = date.getFullYear().toString();
   try {
