@@ -12,7 +12,6 @@ const fetchRankings = async (year, statId) => {
         "X-RapidAPI-Host": "live-golf-data.p.rapidapi.com",
       },
     });
-
     return response.data.rankings;
   } catch (error) {
     console.error("Error fetching rankings:", error);
@@ -35,6 +34,4 @@ const fetchPlayers = async (orgId, tournId, year) => {
     throw error;
   }
 };
-
-module.exports = {fetchRankings};
-module.exports = {fetchPlayers};
+module.exports = {fetchRankings, fetchPlayers};

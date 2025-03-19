@@ -16,8 +16,7 @@ const admin = require("firebase-admin");
 admin.initializeApp();
 
 const {getFirestore} = require("firebase-admin/firestore");
-const {fetchRankings} = require("./api/golfApi");
-const {fetchPlayers} = require("./api/golfApi");
+const {fetchRankings, fetchPlayers} = require("./api/golfApi");
 const {getActiveTournament} = require("./utils/utils");
 const {getNextTournament} = require("./utils/utils");
 const {createPlayers} = require("./utils/utils");
@@ -25,6 +24,35 @@ const {createPlayers} = require("./utils/utils");
 
 
 const db = getFirestore();
+
+exports.finishBets = onSchedule("every thursday 03:00", async (event) => {
+  const date = new Date();
+  const year = date.getFullYear().toString();
+  try {
+    const activeTournament = await getActiveTournament(year);
+    if (activeTournament.length > 0) {
+      const activeTournamentId = activeTournament[0];
+      const docSnap = await db.collection("I_Torneos").doc(year).
+          collection("Tournaments").doc(activeTournamentId).get();
+
+      if (docSnap.exists) {
+        docSnap.ref.update({
+          apuestas: 0,
+        });
+        console.log("Apuestas deactivated for active tournament");
+      } else {
+        console.log("No document found");
+        return;
+      }
+    } else {
+      console.log("Error fetching active tournament inside finish bets");
+      return;
+    }
+  } catch (error) {
+    console.error("Error closing the bets: ", error);
+    return;
+  }
+});
 
 exports.updateRankings = onSchedule("every monday 00:00", async (event) => {
   try {
