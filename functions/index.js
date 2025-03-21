@@ -17,13 +17,46 @@ admin.initializeApp();
 
 const {getFirestore} = require("firebase-admin/firestore");
 const {fetchRankings, fetchPlayers} = require("./api/golfApi");
+const {fetchTournamentData} = require("./api/golfApi");
 const {getActiveTournament} = require("./utils/utils");
+const {processClassification} = require("./classification/roundOne");
 const {getNextTournament} = require("./utils/utils");
 const {createPlayers} = require("./utils/utils");
 // const {initializeApp} = require("firebase-admin/app");
 
 
 const db = getFirestore();
+
+exports.processTournamentRounds = onSchedule("59 * * * 4-7", async (event) => {
+  const date = new Date();
+  const year = date.getFullYear().toString();
+  try {
+    const tournamendId = await getActiveTournament(year);
+    if (tournamendId.length > 0) {
+      const tournId = tournamendId[0];
+      const tournamentData = await fetchTournamentData(1, tournId, year);
+
+      if (tournamentData.status == "Not Started") {
+        console.log("Tournament not started!!");
+        return;
+      }
+
+      const activeRound = tournamentData.currentRound;
+      if (activeRound == 1) {
+        await processClassification(tournId, year);
+        console.log("Classification processed");
+        return;
+      }
+    } else {
+      console.log("There was a problem fetching the active tournament");
+      return;
+    }
+  } catch (error) {
+    console.error("Error processing the tournament rounds: ", error);
+    return;
+  }
+},
+);
 
 exports.finishBets = onSchedule("every thursday 03:00", async (event) => {
   const date = new Date();

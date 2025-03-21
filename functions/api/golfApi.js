@@ -3,6 +3,39 @@ const {defineString} = require("firebase-functions/params");
 
 const rapidApiKey = defineString("RAPIDAPI_KEY");
 
+
+const fetchLeaderBoard = async (orgId, tournId, year) => {
+  try {
+    const response = await axios.get("https://live-golf-data.p.rapidapi.com/leaderboard", {
+      params: {orgId, tournId, year},
+      headers: {
+        "X-RapidAPI-Key": rapidApiKey.value(),
+        "X-RapidAPI-Host": "live-golf-data.p.rapidapi.com",
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching leaderboard for classification: ", error);
+    return;
+  }
+};
+
+const fetchTournamentData = async (orgId, tournId, year) => {
+  try {
+    const response = await axios.get("https://live-golf-data.p.rapidapi.com/tournament", {
+      params: {orgId, tournId, year},
+      headers: {
+        "X-RapidAPI-Key": rapidApiKey.value(),
+        "X-RapidAPI-Host": "live-golf-data.p.rapidapi.com",
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching tournament Data:", error);
+    throw error;
+  }
+};
+
 const fetchRankings = async (year, statId) => {
   try {
     const response = await axios.get("https://live-golf-data.p.rapidapi.com/stats", {
@@ -34,4 +67,5 @@ const fetchPlayers = async (orgId, tournId, year) => {
     throw error;
   }
 };
-module.exports = {fetchRankings, fetchPlayers};
+module.exports = {fetchLeaderBoard, fetchTournamentData,
+  fetchRankings, fetchPlayers};
