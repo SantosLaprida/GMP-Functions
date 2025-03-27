@@ -16,10 +16,11 @@ const admin = require("firebase-admin");
 admin.initializeApp();
 
 const {getFirestore} = require("firebase-admin/firestore");
+const {logger} = require("firebase-functions");
+
 const {fetchRankings, fetchPlayers} = require("./api/golfApi");
-const {fetchTournamentData} = require("./api/golfApi");
+const {processRounds} = require("./classification/rounds");
 const {getActiveTournament} = require("./utils/utils");
-const {processClassification} = require("./classification/roundOne");
 const {getNextTournament} = require("./utils/utils");
 const {createPlayers} = require("./utils/utils");
 // const {initializeApp} = require("firebase-admin/app");
@@ -28,35 +29,13 @@ const {createPlayers} = require("./utils/utils");
 const db = getFirestore();
 
 exports.processTournamentRounds = onSchedule("59 * * * 4-7", async (event) => {
-  const date = new Date();
-  const year = date.getFullYear().toString();
   try {
-    const tournamendId = await getActiveTournament(year);
-    if (tournamendId.length > 0) {
-      const tournId = tournamendId[0];
-      const tournamentData = await fetchTournamentData(1, tournId, year);
-
-      if (tournamentData.status == "Not Started") {
-        console.log("Tournament not started!!");
-        return;
-      }
-
-      const activeRound = tournamentData.currentRound;
-      if (activeRound == 1) {
-        await processClassification(tournId, year);
-        console.log("Classification processed");
-        return;
-      }
-    } else {
-      console.log("There was a problem fetching the active tournament");
-      return;
-    }
+    await processRounds();
   } catch (error) {
-    console.error("Error processing the tournament rounds: ", error);
-    return;
+    logger.error("Error in tournament rounds processing:", error);
   }
-},
-);
+});
+
 
 exports.finishBets = onSchedule("every thursday 03:00", async (event) => {
   const date = new Date();
@@ -94,6 +73,7 @@ exports.updateRankings = onSchedule("every monday 00:00", async (event) => {
     const statId = "186";
 
     const rankings = await fetchRankings(year, statId);
+
 
     for (const player of rankings) {
       const playerDocRef = db.collection("I_MaestroJugadores").
@@ -138,6 +118,10 @@ exports.activateTournament = onSchedule("every monday 17:00", async (event) => {
         await documentSnapshot.ref.update({
           activo: 1,
           apuestas: 1,
+          round1: "Not started",
+          round2: "Not started",
+          round3: "Not started",
+          round4: "Not started",
         });
         console.log("Tournament activated ", nextTournamentId);
         const players = await fetchPlayers(1, nextTournamentId, year);

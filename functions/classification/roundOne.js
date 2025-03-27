@@ -11,7 +11,7 @@ exports.processClassification = async (tournamentId, year) => {
 
     const roundId = leaderBoardData.roundId;
     const roundStatus = leaderBoardData.roundStatus;
-    if (roundId !== 1 || roundStatus !== "In Progress") {
+    if (roundId !== 1 || roundStatus === "Not Started") {
       console.log("The round is not In Progress or not round 1, skipping...");
       return;
     }
@@ -41,6 +41,18 @@ exports.processClassification = async (tournamentId, year) => {
         roundComplete: player.roundComplete,
         order: i + 1,
       });
+    }
+
+    if (roundStatus === "Complete" || roundStatus === "Suspended" ||
+        roundStatus === "Official") {
+      const tournamentRef = db.collection("I_Torneos").doc(year).
+          collection("Tournaments").doc(tournamentId);
+      await tournamentRef.update({
+        round1: "Complete",
+      });
+      console.log("Round 1 marked as Complete.");
+    } else {
+      console.log("Round 1 is still in progress. Not updating the status.");
     }
 
     console.log("Classification processed successfully.");
