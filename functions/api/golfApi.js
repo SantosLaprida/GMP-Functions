@@ -4,6 +4,22 @@ const {defineString} = require("firebase-functions/params");
 const rapidApiKey = defineString("RAPIDAPI_KEY");
 
 
+const fetchScoreCard = async (orgId, tournId, year, playerId, roundId) => {
+  try {
+    const response = await axios.get("https://live-golf-data.p.rapidapi.com/scorecard", {
+      params: {orgId, tournId, year, playerId, roundId},
+      headers: {
+        "X-RapidAPI-Key": rapidApiKey.value(),
+        "X-RapidAPI-Host": "live-golf-data.p.rapidapi.com",
+      },
+    });
+    return response.data;
+
+  } catch (error) {
+    console.error("Error fetching scorecards for round ", roundId, error);
+  }
+}
+
 const fetchLeaderBoard = async (orgId, tournId, year) => {
   try {
     const response = await axios.get("https://live-golf-data.p.rapidapi.com/leaderboard", {
@@ -67,5 +83,5 @@ const fetchPlayers = async (orgId, tournId, year) => {
     throw error;
   }
 };
-module.exports = {fetchLeaderBoard, fetchTournamentData,
+module.exports = {fetchScoreCard, fetchLeaderBoard, fetchTournamentData,
   fetchRankings, fetchPlayers};

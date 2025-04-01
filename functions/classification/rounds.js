@@ -68,7 +68,7 @@ const processRounds = async () => {
   const year = new Date().getFullYear().toString();
 
   const tournamentId = await getActiveTournament(year);
-  if (tournamentId.length > 0) {
+  if (tournamentId.length === 0) {
     logger.log("No active tournament found");
     return;
   }

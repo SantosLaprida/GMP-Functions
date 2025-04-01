@@ -32,7 +32,7 @@ exports.processTournamentRounds = onSchedule("59 * * * 4-7", async (event) => {
   try {
     await processRounds();
   } catch (error) {
-    logger.error("Error in tournament rounds processing:", error);
+    logger.error("Error in tournament rounds processing: ", error);
   }
 });
 
