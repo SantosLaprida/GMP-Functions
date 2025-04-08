@@ -14,11 +14,10 @@ const fetchScoreCard = async (orgId, tournId, year, playerId, roundId) => {
       },
     });
     return response.data;
-
   } catch (error) {
     console.error("Error fetching scorecards for round ", roundId, error);
   }
-}
+};
 
 const fetchLeaderBoard = async (orgId, tournId, year) => {
   try {

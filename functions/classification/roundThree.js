@@ -2,13 +2,12 @@ const {fetchLeaderBoard, fetchScoreCard} = require("../api/golfApi");
 const {getFirestore} = require("firebase-admin/firestore");
 
 const {updatePlayerHoleScores} = require("./scores");
-const {processResults} = require("./scores");
 
 const db = getFirestore();
 
-const processRoundTwo = async (tournamentId, year) => {
+const processRoundThree = async (tournamentId, year) => {
   try {
-    const collectionName = "I_Cuartos";
+    const collectionName = "I_Semifinales";
     const leaderBoardData = await fetchLeaderBoard(1, tournamentId, year);
     const roundId = leaderBoardData.roundId;
     const roundStatus = leaderBoardData.roundStatus;
@@ -69,68 +68,19 @@ const processRoundTwo = async (tournamentId, year) => {
 
       const scoreCard = await fetchScoreCard(1, tournamentId,
           year, playerId, roundId);
+      console.log("Fetched scorecard:", scoreCard);
+      console.log("Holes: ", scoreCard.holes);
 
-      if (scoreCard && scoreCard.length > 0) {
-        const playerScoreCard = scoreCard[0];
-        const holes = playerScoreCard.holes;
-
-        if (holes) {
-          // Initialize an object to store hole updates
-          const holeUpdates = {};
-
-          // Iterate through each hole in the holes object
-          Object.keys(holes).forEach((holeNumber) => {
-            const hole = holes[holeNumber];
-
-            // Update hole field in the format H01, H02, etc.
-            const holeField = `H${String(holeNumber).padStart(2, "0")}`;
-
-            // Assign the hole score to the hole field
-            holeUpdates[holeField] = hole.holeScore;
-
-          });
-
-          // Log all the hole updates
-          console.log("Hole Updates:", holeUpdates);
-
-          // Now update the player's scores in the collection
-          await updatePlayerHoleScores(playerId, holeUpdates,
-              tournamentId, year, collectionName);
-
-          console.log(`Updated hole scores for player`);
-          console.log(` ${playerData.firstName} ${playerData.lastName}`);
-
-          if (playerScoreCard.roundComplete === true) {
-            await playerDocRef.update({
-              roundComplete: true
-            });
-            console.log(`Round complete updated for player ${playerData.firstName} ${playerData.lastName}`);
-          }
-
-        } else {
-          console.log(`No hole scores available for player`);
-          console.log(` ${playerData.firstName} ${playerData.lastName}`);
-        }
+      if (scoreCard && scoreCard.holes) {
+        await updatePlayerHoleScores(playerId, scoreCard.holes,
+            tournamentId, year, collectionName);
+        console.log(`Updated hole scores for player`);
+        console.log(` ${playerData.firstName} ${playerData.lastName}`);
       } else {
-        console.log("No scorecard data found for player:",
-            playerData.firstName, playerData.lastName);
+        console.log(`No scorecard data available for player`);
+        console.log(` ${playerData.firstName} ${playerData.lastName}`);
       }
     });
-
-    if (roundStatus === "Complete" || roundStatus === "Suspended" ||
-      roundStatus === "Official") {
-    const tournamentRef = db.collection("I_Torneos").doc(year).
-        collection("Tournaments").doc(tournamentId);
-    await tournamentRef.update({
-      round2: "Complete",
-    });
-    console.log("Round 2 marked as Complete.");
-    const collectionName = "I_Cuartos";
-    await processResults(year, tournamentId, collectionName);
-
-  } else {
-    console.log("Round 2 is still in progress. Not updating the status.");
-  }
 
     console.log("Round 2 processed successfully.");
   } catch (error) {
@@ -138,4 +88,4 @@ const processRoundTwo = async (tournamentId, year) => {
   }
 };
 
-module.exports = {processRoundTwo};
+module.exports = {processRoundThree};

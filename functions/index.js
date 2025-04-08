@@ -28,11 +28,11 @@ const {createPlayers} = require("./utils/utils");
 
 const db = getFirestore();
 
-exports.processTournamentRounds = onSchedule("59 * * * 4-7", async (event) => {
+exports.processTournamentRounds = onSchedule("18 * * * 4-7", async (event) => {
   try {
     await processRounds();
   } catch (error) {
-    logger.error("Error in tournament rounds processing: ", error);
+    logger.error("Error in tournament rounds processing! : ", error);
   }
 });
 
