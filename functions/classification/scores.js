@@ -1,32 +1,6 @@
 const {getFirestore} = require("firebase-admin/firestore");
 const db = getFirestore();
 
-const processResults = async (year, tournamentId, roundId) => {
-  try {
-    if (!year || !tournamentId || !roundId) {
-      console.log("Year, tournamentId, or roundId is missing");
-      return;
-    }
-
-    switch (roundId) {
-      case 2:
-        break;
-
-      case 3:
-        break;
-
-      case 4:
-        break;
-
-      default:
-        console.log("CollectionName passed to processResults is not valid");
-        return;
-    }
-  } catch (error) {
-    console.error("Error processing results: ", error);
-    throw error;
-  }
-};
 
 /**
  * Update the hole scores for a specific player in a
@@ -38,6 +12,45 @@ const processResults = async (year, tournamentId, roundId) => {
  * @param {string} collectionName - The collection name
  * (e.g., "I_Cuartos", "I_Semifinales").
  */
+
+const compareScores = async (scoreSheet1, scoreSheet2,
+    playerNumber1, playerNumber2) => {
+  console.log("Comparing scores with");
+  console.log(playerNumber1);
+  console.log(playerNumber2);
+
+  if (!scoreSheet1 || !scoreSheet2) return null;
+
+  let result = 0;
+
+
+  for (let i = 1; i <= 18; i++) {
+    const score1 = scoreSheet1[`H${i}`];
+    const score2 = scoreSheet2[`H${i}`];
+
+    if (score1 < score2) result++;
+    else if (score1 > score2) result--;
+  }
+
+  if (result === 0) {
+    for (let i = 1; i <= 18; i++) {
+      const score1 = scoreSheet1[`H${i}`];
+      const score2 = scoreSheet2[`H${i}`];
+
+      if (score1 < score2) return {winner: playerNumber1, loser: playerNumber2};
+      if (score1 > score2) return {winner: playerNumber2, loser: playerNumber1};
+    }
+
+    return playerNumber1 < playerNumber2 ?
+      {winner: playerNumber1, loser: playerNumber2} :
+      {winner: playerNumber2, loser: playerNumber1};
+  }
+
+  return result > 0 ?
+    {winner: playerNumber1, loser: playerNumber2} :
+    {winner: playerNumber2, loser: playerNumber1};
+};
+
 const updatePlayerHoleScores = async (playerId, scoreCard,
     tournamentId, year, collectionName) => {
   try {
@@ -71,4 +84,4 @@ const updatePlayerHoleScores = async (playerId, scoreCard,
   }
 };
 
-module.exports = {updatePlayerHoleScores, processResults};
+module.exports = {updatePlayerHoleScores, compareScores};

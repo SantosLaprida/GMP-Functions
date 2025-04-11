@@ -58,7 +58,7 @@ const handleRound3 = async (tournamentRef, tournamentDoc, tournId, year) => {
   }
 
   if (round3 === "Complete") {
-    logger.log("Round 2 already complete");
+    logger.log("Round 3 already complete");
     return;
   }
 

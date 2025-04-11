@@ -1,10 +1,78 @@
 const {fetchLeaderBoard, fetchScoreCard} = require("../api/golfApi");
 const {getFirestore} = require("firebase-admin/firestore");
 
+const {createISemifinales} = require("./roundThree");
 const {updatePlayerHoleScores} = require("./scores");
+const {compareScores} = require("./scores");
 
 const db = getFirestore();
 
+const processCuartosResults = async (year, tournamentId, collectionName) => {
+  try {
+    const collectionRef = db
+        .collection("I_Torneos")
+        .doc(year)
+        .collection("Tournaments")
+        .doc(tournamentId)
+        .collection(collectionName);
+
+    const snapshot = await collectionRef.get();
+    if (snapshot.empty) {
+      console.warn("No players found in collection:", collectionName);
+      return;
+    }
+
+    const playersData = [];
+    snapshot.forEach((doc) => {
+      const data = doc.data();
+      playersData.push({
+        id: doc.id,
+        order: data.order,
+        data: data,
+      });
+    });
+
+    if (playersData.length !== 8) {
+      console.error("Expected 8 players in this round, but got",
+          playersData.length);
+      return;
+    }
+    playersData.sort((a, b) => a.order - b.order);
+
+    const matchups = [
+      [0, 7], // 1 vs 8
+      [1, 6], // 2 vs 7
+      [2, 5], // 3 vs 6
+      [3, 4], // 4 vs 5
+    ];
+
+    const winners = [];
+    const losers = [];
+
+    for (const [i1, i2] of matchups) {
+      const p1 = playersData[i1];
+      const p2 = playersData[i2];
+
+      const result = await compareScores(
+          p1.data,
+          p2.data,
+          parseInt(p1.id),
+          parseInt(p2.id),
+      );
+
+      winners.push(result.winner.toString());
+      losers.push(result.loser.toString());
+
+      console.log(`Match: ${p1.id} vs ${p2.id} -> Winner: ${result.winner}`);
+    }
+
+    await createISemifinales(year, tournamentId, "I_Semifinales", winners);
+
+    console.log("✅ Semifinales created with players:", winners);
+  } catch (error) {
+    console.error("Error processing cuartos results: ", error);
+  }
+};
 
 const createIcuartos = async (clasificacionSnapshot, cuartosRef) => {
   try {
@@ -73,7 +141,7 @@ const processRoundTwo = async (tournamentId, year) => {
     for (const doc of cuartosSnapshot.docs) {
       const playerData = doc.data();
       const playerId = playerData.playerId;
-      const playerDocRef = cuartosRef.doc(doc.id); // <-- Fix from above
+      const playerDocRef = cuartosRef.doc(doc.id);
       const roundId = 2;
 
       const scoreCard = await fetchScoreCard(1, tournamentId, year,
@@ -123,6 +191,7 @@ const processRoundTwo = async (tournamentId, year) => {
         round2: "Complete",
       });
       console.log("Round 2 marked as Complete.");
+      await processCuartosResults(year, tournamentId, collectionName);
     } else {
       console.log("Round 2 is still in progress. Not updating the status.");
     }

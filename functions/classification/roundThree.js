@@ -5,66 +5,99 @@ const {updatePlayerHoleScores} = require("./scores");
 
 const db = getFirestore();
 
+const createISemifinales = async (year,
+    tournamentId, collectionName, players) => {
+  if (!Array.isArray(players) || players.length !== 4) {
+    console.error("Player array must contain exactly 4 player IDs.");
+    return;
+  }
+
+  const basePath = db
+      .collection("I_Torneos")
+      .doc(year)
+      .collection("Tournaments")
+      .doc(tournamentId);
+
+  const sourceCollection = basePath.collection("I_Cuartos");
+  const targetCollection = basePath.collection(collectionName);
+
+  for (let i = 0; i < players.length; i++) {
+    const playerId = players[i].toString();
+
+    try {
+      const docSnap = await sourceCollection.doc(playerId).get();
+
+      if (!docSnap.exists) {
+        console.warn(`Player ${playerId} not found in I_Cuartos.`);
+        continue;
+      }
+
+      const sourceData = docSnap.data();
+
+      const newData = {};
+
+      for (const key in sourceData) {
+        if (!key.startsWith("H") && key !== "order") {
+          newData[key] = sourceData[key];
+        }
+      }
+
+      for (let h = 1; h <= 18; h++) {
+        const holeKey = `H${h.toString().padStart(2, "0")}`;
+        newData[holeKey] = 0;
+      }
+
+      newData.order = i + 1;
+
+
+      await targetCollection.doc(playerId).set(newData);
+      console.log(`✅ Player ${playerId} added to 
+        ${collectionName} with orden ${i + 1}`);
+    } catch (error) {
+      console.error(`❌ Error processing player ${playerId}:`, error);
+    }
+  }
+};
+
 const processRoundThree = async (tournamentId, year) => {
   try {
     const collectionName = "I_Semifinales";
     const leaderBoardData = await fetchLeaderBoard(1, tournamentId, year);
     const roundId = leaderBoardData.roundId;
     const roundStatus = leaderBoardData.roundStatus;
-    if (roundId !== 2 || roundStatus === "Not Started") {
-      console.log("The round is not In Progress or not round 2, skipping...");
+    if (roundId !== 3 || roundStatus === "Not Started") {
+      console.log("The round is not In Progress or not round 3, skipping...");
       return;
     }
 
-    const clasificacionRef = db.collection("I_Torneos").doc(year).
+    const cuartosRef = db.collection("I_Torneos").doc(year).
         collection("Tournaments").doc(tournamentId).
-        collection("I_Players_Clasificacion");
-
-    const clasificacionSnapshot = await clasificacionRef.get();
-
-    if (clasificacionSnapshot.empty) {
-      console.log("No players in I_Players_Clasificacion");
-      console.log("Skipping round two processing.");
-      return;
-    }
-
-    const cuartosRef = db.collection("I_Torneos").doc(year)
-        .collection("Tournaments").doc(tournamentId)
-        .collection("I_Cuartos");
+        collection("I_Cuartos");
 
     const cuartosSnapshot = await cuartosRef.get();
 
     if (cuartosSnapshot.empty) {
-      clasificacionSnapshot.forEach(async (doc) => {
-        const playerData = doc.data();
-        const playerId = playerData.playerId;
-
-        const playerDocRef = cuartosRef.doc(playerId);
-
-        await playerDocRef.set({
-          firstName: playerData.firstName,
-          lastName: playerData.lastName,
-          name: `${playerData.firstName} ${playerData.lastName}`,
-          roundComplete: false,
-          playerId: playerId,
-          order: playerData.order,
-          H01: 0, H02: 0, H03: 0, H04: 0, H05: 0, H06: 0,
-          H07: 0, H08: 0, H09: 0, H10: 0,
-          H11: 0, H12: 0, H13: 0, H14: 0, H15: 0,
-          H16: 0, H17: 0, H18: 0,
-        });
-
-        console.log(`Player ${playerData.firstName} `);
-        console.log(`${playerData.lastName} added to I_Cuartos.`);
-      });
-
-      console.log("I_Cuartos documents created successfully.");
+      console.log("No players in I_Cuartos");
+      console.log("Skipping round three processing.");
+      return;
     }
 
-    cuartosSnapshot.forEach(async (doc) => {
+    const semisRef = db.collection("I_Torneos").doc(year)
+        .collection("Tournaments").doc(tournamentId)
+        .collection("I_Cuartos");
+
+    const semisSnapshot = await semisRef.get();
+
+    if (semisSnapshot.empty) {
+      console.log("I_Semifinales doesnt exist when processing round 3");
+      console.log("Returning");
+      return;
+    }
+
+    semisSnapshot.forEach(async (doc) => {
       const playerData = doc.data();
       const playerId = playerData.playerId;
-      const roundId = 2;
+      const roundId = 3;
 
       const scoreCard = await fetchScoreCard(1, tournamentId,
           year, playerId, roundId);
@@ -82,10 +115,10 @@ const processRoundThree = async (tournamentId, year) => {
       }
     });
 
-    console.log("Round 2 processed successfully.");
+    console.log("Round 3 processed successfully.");
   } catch (error) {
     console.error("Error processing round 2: ", error);
   }
 };
 
-module.exports = {processRoundThree};
+module.exports = {createISemifinales, processRoundThree};
