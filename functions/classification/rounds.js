@@ -6,6 +6,7 @@ const {getActiveTournament} = require("../utils/utils");
 const {processClassification} = require("./roundOne");
 const {processRoundTwo} = require("./roundTwo");
 const {processRoundThree} = require("./roundThree");
+const {processRoundFour} = require("./roundFour");
 
 const db = getFirestore();
 
@@ -69,6 +70,27 @@ const handleRound3 = async (tournamentRef, tournamentDoc, tournId, year) => {
   await processRoundThree(tournId, year);
 };
 
+const handleRound4 = async (tournamentRef, tournamentDoc, tournId, year) => {
+  const {round3, round4} = tournamentDoc;
+
+  if (round3 !== "Complete") {
+    logger.log("Round 3 not complete, reprocessing Round 3");
+    await processRoundThree(tournId, year);
+    logger.log("Round 3 reprocessed");
+  }
+
+  if (round4 === "Complete") {
+    logger.log("Round 4 already complete");
+    return;
+  }
+
+  if (round4 === "Not Started") {
+    await tournamentRef.update({round4: "In Progress"});
+    logger.log("Round 4 marked as In Progress");
+  }
+  await processRoundFour(tournId, year);
+};
+
 
 const handleRoundProcessing = async (tournamentSnapshot, tournamentData,
     tournId, year) => {
@@ -85,8 +107,9 @@ const handleRoundProcessing = async (tournamentSnapshot, tournamentData,
     case 3:
       await handleRound3(tournamentSnapshot.ref, tournamentDoc, tournId, year);
       break;
-
-
+    case 4:
+      await handleRound4(tournamentSnapshot.ref, tournamentDoc, tournId, year);
+      break;
     // Add cases for round 3 and 4 as needed
     default:
       logger.log(`No processing defined for round ${currentRound}`);
