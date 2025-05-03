@@ -1,4 +1,5 @@
 const {getFirestore} = require("firebase-admin/firestore");
+const {Timestamp} = admin.firestore;
 
 const db = getFirestore();
 
@@ -25,16 +26,35 @@ exports.getNextTournament = async (year, order) => {
         .collection("Tournaments")
         .where("order", ">", order)
         .orderBy("order")
-        .limit(1)
+        .limit(3)
         .get();
 
     if (querySnap.empty) {
-      console.log("No documents found");
+      console.log("No Upcoming tournaments found.");
       return;
-    } else {
-      const firstDoc = querySnap.docs[0];
-      return firstDoc.id;
+    }  
+
+    const now = new Date();
+    const oneDayMs = 24 * 60 * 60 * 1000;
+
+    for (const doc of querySnap) {
+      const data = doc.data();
+
+      if (!data.activation_date || !(data.activation_date instanceof Timestamp)) {
+        continue;
+      }
+    
+      const activationDate = data.activationDate.toDate();
+      const diff = Math.abs(activationDate.getTime() - now.getTime());
+
+      if (diff <= oneDayMs) {
+        return doc.id;
+      }
     }
+
+    console.log("No tournament matched the activation date range.");
+    return null;
+    
   } catch (error) {
     console.error("Error fetching the next tournament ", error);
     return;

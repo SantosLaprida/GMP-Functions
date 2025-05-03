@@ -133,6 +133,7 @@ exports.activateTournament = onSchedule("every monday 17:00", async (event) => {
     } else {
       console.log("No active tournaments found");
       return;
+      
     }
   } catch (error) {
     console.error("Error activating tournament ", error);
