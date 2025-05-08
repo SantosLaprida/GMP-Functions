@@ -28,11 +28,11 @@ const {createPlayers} = require("./utils/utils");
 
 const db = getFirestore();
 
-exports.processTournamentRounds = onSchedule("30 * * * 4-7", async (event) => {
+exports.processTournamentRounds = onSchedule("10 * * * 4-7", async (event) => {
   try {
     await processRounds();
   } catch (error) {
-    logger.error("Error in tournament rounds processing: ", error);
+    logger.error("Error in tournament rounds processing...: ", error);
   }
 });
 
@@ -94,7 +94,7 @@ exports.updateRankings = onSchedule("every monday 00:00", async (event) => {
   }
 });
 
-exports.activateTournament = onSchedule("every monday 17:00", async (event) => {
+exports.activateTournament = onSchedule("every monday 13:50", async (event) => {
   const date = new Date();
   const year = date.getFullYear().toString();
   try {
@@ -118,22 +118,21 @@ exports.activateTournament = onSchedule("every monday 17:00", async (event) => {
         await documentSnapshot.ref.update({
           activo: 1,
           apuestas: 1,
-          round1: "Not started",
-          round2: "Not started",
-          round3: "Not started",
-          round4: "Not started",
+          round1: "Not Started",
+          round2: "Not Started",
+          round3: "Not Started",
+          round4: "Not Started",
         });
         console.log("Tournament activated ", nextTournamentId);
         const players = await fetchPlayers(1, nextTournamentId, year);
         await createPlayers(db, year, players, nextTournamentId);
       } else {
-        console.log("No document Found!");
+        console.log("No document Found.");
         return;
       }
     } else {
-      console.log("No active tournaments found");
+      console.log("No active tournaments found...");
       return;
-      
     }
   } catch (error) {
     console.error("Error activating tournament ", error);

@@ -16,7 +16,7 @@ exports.processClassification = async (tournamentId, year) => {
       return;
     }
 
-    const topPlayers = leaderBoardData.leaderboardRows.slice(0, 8);
+    const topPlayers = leaderBoardData.leaderboardRows;
 
     const playersCollectionRef = db
         .collection("I_Torneos")
@@ -39,6 +39,7 @@ exports.processClassification = async (tournamentId, year) => {
         lastName: player.lastName,
         name: `${player.firstName} ${player.lastName}`,
         roundComplete: player.roundComplete,
+        score: player.currentRoundScore,
         order: i + 1,
       });
     }
