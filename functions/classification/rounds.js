@@ -41,7 +41,7 @@ const handleRound2 = async (tournamentRef, tournamentDoc, tournId, year) => {
     return;
   }
 
-  if (round2 === "Not started") {
+  if (round2 === "Not Started") {
     await tournamentRef.update({round2: "In Progress"});
     logger.log("Round 2 marked as In Progress");
   }

@@ -28,7 +28,7 @@ const {createPlayers} = require("./utils/utils");
 
 const db = getFirestore();
 
-exports.processTournamentRounds = onSchedule("10 * * * 4-7", async (event) => {
+exports.processTournamentRounds = onSchedule("32 * * * 4-7", async (event) => {
   try {
     await processRounds();
   } catch (error) {

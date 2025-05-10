@@ -74,9 +74,14 @@ const processCuartosResults = async (year, tournamentId, collectionName) => {
   }
 };
 
-const createIcuartos = async (clasificacionSnapshot, cuartosRef) => {
+const createIcuartos = async (clasificacionSnapshot, cuartosRef, limit = 8) => {
   try {
-    for (const doc of clasificacionSnapshot.docs) {
+    const docs = clasificacionSnapshot.docs
+        .filter((doc) => doc.data().order <= 8)
+        .sort((a, b) => a.data().order - b.data().order);
+
+
+    for (const doc of docs) {
       const playerData = doc.data();
       const playerId = playerData.playerId;
 
@@ -104,6 +109,7 @@ const createIcuartos = async (clasificacionSnapshot, cuartosRef) => {
     console.error("Error in createI_Cuartos function: ", error);
   }
 };
+
 
 const processRoundTwo = async (tournamentId, year) => {
   try {
