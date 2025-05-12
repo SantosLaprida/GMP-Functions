@@ -1,9 +1,60 @@
 const {fetchLeaderBoard, fetchScoreCard} = require("../api/golfApi");
+const {compareScores} = require("./scores");
 const {getFirestore} = require("firebase-admin/firestore");
 
 const {updatePlayerHoleScores} = require("./scores");
 
 const db = getFirestore();
+
+const createIResultados = async (year, tournamentId) => {
+  const basePath = db
+      .collection("I_Torneos")
+      .doc(year)
+      .collection("Tournaments")
+      .doc(tournamentId);
+
+  const resultadosRef = basePath.collection("I_Resultados");
+
+  const finalsRef = basePath.collection("I_Finales");
+  const tercerCuartoRef = basePath.collection("I_TercerCuarto");
+
+  try {
+    const finalesSnapshot = await finalsRef.get();
+    const tercerCuartoSnapshot = await tercerCuartoRef.get();
+
+    if (finalesSnapshot.size !== 2 || tercerCuartoSnapshot.size !== 2) {
+      console.error("Expected exactly 2 players in each collection.");
+      return;
+    }
+
+    const finales = finalesSnapshot.docs.map((doc) => doc.data());
+    const tercerCuarto = tercerCuartoSnapshot.docs.map((doc) => doc.data());
+
+    const resultFinal = await compareScores(finales[0], finales[1],
+        finales[0].playerId, finales[1].playerId);
+    const resultThird = await compareScores(tercerCuarto[0], tercerCuarto[1],
+        tercerCuarto[0].playerId, tercerCuarto[1].playerId);
+
+    const rankings = [
+      {rank: 1, player: resultFinal.winner},
+      {rank: 2, player: resultFinal.loser},
+      {rank: 3, player: resultThird.winner},
+      {rank: 4, player: resultThird.loser},
+    ];
+
+    for (const {rank, player} of rankings) {
+      await resultadosRef.doc(player.toString()).set({
+        playerId: player,
+        rank,
+      });
+      console.log(`✅ Stored player ${player} as rank ${rank}`);
+    }
+
+    console.log("🏁 I_Resultados created successfully.");
+  } catch (error) {
+    console.error("❌ Error creating I_Resultados:", error);
+  }
+};
 
 const createIFinales = async (year,
     tournamentId, collectionName, players) => {
@@ -133,6 +184,7 @@ const processRoundFour = async (tournamentId, year) => {
     }
     if (["Complete", "Suspended", "Official"].includes(roundStatus)) {
       await baseRef.update({round4: "Complete"});
+      await createIResultados(year, tournamentId);
       console.log("✅ Round 4 marked as Complete.");
     } else {
       console.log("Round 4 still in progress.");
@@ -144,4 +196,4 @@ const processRoundFour = async (tournamentId, year) => {
   }
 };
 
-module.exports = {createIFinales, processRoundFour};
+module.exports = {createIFinales, processRoundFour, createIResultados};

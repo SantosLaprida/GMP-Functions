@@ -28,6 +28,14 @@ const {createPlayers} = require("./utils/utils");
 
 const db = getFirestore();
 
+exports.processTournamentEndings = onSchedule("08 0-4 * * 1", async (event) => {
+  try {
+    await processRounds();
+  } catch (error) {
+    logger.error("Error inside process tournament endings!!: ", error);
+  }
+});
+
 exports.processTournamentRounds = onSchedule("32 * * * 4-7", async (event) => {
   try {
     await processRounds();
@@ -94,7 +102,7 @@ exports.updateRankings = onSchedule("every monday 00:00", async (event) => {
   }
 });
 
-exports.activateTournament = onSchedule("every monday 13:50", async (event) => {
+exports.activateTournament = onSchedule("every monday 17:00", async (event) => {
   const date = new Date();
   const year = date.getFullYear().toString();
   try {
@@ -110,7 +118,7 @@ exports.activateTournament = onSchedule("every monday 13:50", async (event) => {
           activo: 0,
         });
 
-        console.log("Tournament desactivated ", activeTournamentId);
+        console.log("Tournament desactivated! ", activeTournamentId);
 
         const nextTournamentId = await getNextTournament(year, order);
         const documentSnapshot = await db.collection("I_Torneos").doc(year).
