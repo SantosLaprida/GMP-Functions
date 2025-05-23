@@ -4,6 +4,26 @@ const admin = require("firebase-admin");
 
 const db = getFirestore();
 
+
+exports.getLogoByPlayerId = async (playerId) => {
+  try {
+    const id = String(playerId);
+    const playerDoc = await db.collection("I_MaestroJugadores").
+        doc(id).get();
+
+    if (playerDoc.exists) {
+      const data = playerDoc.data();
+      return data.logo;
+    } else {
+      console.log("No document found with ", playerId, " In Maestro Jugadores");
+      return;
+    }
+  } catch (error) {
+    console.error("Error fetching logo by playerId: ", error);
+    return;
+  }
+};
+
 exports.getActiveTournament = async (year) => {
   try {
     const querySnap = await db.collection("I_Torneos").
@@ -71,14 +91,17 @@ exports.createPlayers = async (db, year, players, tournamentId) => {
         .get();
 
     const playerRanks = {};
+    const playerLogos = {};
     playerDocs.forEach((doc) => {
       const playerId = doc.id;
       playerRanks[playerId] = doc.data().ranking || 0;
+      playerLogos[playerId] = doc.data().logo;
     });
 
     for (const player of players) {
       const playerId = player.playerId;
       const rank = playerRanks[playerId] || 0;
+      const logo = playerLogos[playerId];
 
       const playerData = {
         firstName: player.firstName,
@@ -87,6 +110,7 @@ exports.createPlayers = async (db, year, players, tournamentId) => {
         idPlayer: playerId,
         apuestas: 0,
         rank: rank,
+        logo: logo,
       };
 
       await tournamentDocRef.collection("I_Players").doc(playerId).

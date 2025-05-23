@@ -36,13 +36,14 @@ exports.processTournamentEndings = onSchedule("08 0-4 * * 1", async (event) => {
   }
 });
 
-exports.processTournamentRounds = onSchedule("32 * * * 4-7", async (event) => {
-  try {
-    await processRounds();
-  } catch (error) {
-    logger.error("Error in tournament rounds processing...: ", error);
-  }
-});
+exports.processTournamentRounds =
+  onSchedule("*/30 * * * 4-7", async (event) => {
+    try {
+      await processRounds();
+    } catch (error) {
+      logger.error("Error in tournament rounds processing...: ", error);
+    }
+  });
 
 
 exports.finishBets = onSchedule("every thursday 03:00", async (event) => {

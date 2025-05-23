@@ -1,4 +1,5 @@
 const {fetchLeaderBoard, fetchScoreCard} = require("../api/golfApi");
+const {getLogoByPlayerId} = require("../utils/utils");
 const {getFirestore} = require("firebase-admin/firestore");
 
 const {createISemifinales} = require("./roundThree");
@@ -85,6 +86,7 @@ const createIcuartos = async (clasificacionSnapshot, cuartosRef, limit = 8) => {
       const playerData = doc.data();
       const playerId = playerData.playerId;
 
+      const logo = await getLogoByPlayerId(playerId);
       const playerDocRef = cuartosRef.doc(playerId);
 
       await playerDocRef.set({
@@ -94,6 +96,7 @@ const createIcuartos = async (clasificacionSnapshot, cuartosRef, limit = 8) => {
         roundComplete: false,
         playerId: playerId,
         order: playerData.order,
+        logo: logo,
         H01: 0, H02: 0, H03: 0, H04: 0, H05: 0, H06: 0,
         H07: 0, H08: 0, H09: 0, H10: 0,
         H11: 0, H12: 0, H13: 0, H14: 0, H15: 0,
