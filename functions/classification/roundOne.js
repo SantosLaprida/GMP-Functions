@@ -33,6 +33,10 @@ exports.processClassification = async (tournamentId, year) => {
 
     for (let i = 0; i < topPlayers.length; i++) {
       const player = topPlayers[i];
+
+      const holesPlayed =
+        player.thru === "F" ? 18 : parseInt(player.thru) || 0;
+
       await playersCollectionRef.add({
         playerId: player.playerId,
         firstName: player.firstName,
@@ -41,6 +45,7 @@ exports.processClassification = async (tournamentId, year) => {
         roundComplete: player.roundComplete,
         score: player.currentRoundScore,
         order: i + 1,
+        holesPlayed: holesPlayed,
       });
     }
 

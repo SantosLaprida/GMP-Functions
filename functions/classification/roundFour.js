@@ -6,6 +6,7 @@ const {updatePlayerHoleScores} = require("./scores");
 
 const db = getFirestore();
 
+
 const createIResultados = async (year, tournamentId) => {
   const basePath = db
       .collection("I_Torneos")
@@ -14,12 +15,11 @@ const createIResultados = async (year, tournamentId) => {
       .doc(tournamentId);
 
   const resultadosRef = basePath.collection("I_Resultados");
-
-  const finalsRef = basePath.collection("I_Finales");
+  const finalesRef = basePath.collection("I_Finales");
   const tercerCuartoRef = basePath.collection("I_TercerCuarto");
 
   try {
-    const finalesSnapshot = await finalsRef.get();
+    const finalesSnapshot = await finalesRef.get();
     const tercerCuartoSnapshot = await tercerCuartoRef.get();
 
     if (finalesSnapshot.size !== 2 || tercerCuartoSnapshot.size !== 2) {
@@ -27,27 +27,55 @@ const createIResultados = async (year, tournamentId) => {
       return;
     }
 
-    const finales = finalesSnapshot.docs.map((doc) => doc.data());
-    const tercerCuarto = tercerCuartoSnapshot.docs.map((doc) => doc.data());
+    const finales = finalesSnapshot.docs.map((doc) => ({
+      ...doc.data(),
+      playerId: doc.id,
+    }));
+    const tercerCuarto = tercerCuartoSnapshot.docs.map((doc) => ({
+      ...doc.data(),
+      playerId: doc.id,
+    }));
 
-    const resultFinal = await compareScores(finales[0], finales[1],
-        finales[0].playerId, finales[1].playerId);
-    const resultThird = await compareScores(tercerCuarto[0], tercerCuarto[1],
-        tercerCuarto[0].playerId, tercerCuarto[1].playerId);
+    const resultFinal = await compareScores(
+        finales[0],
+        finales[1],
+        parseInt(finales[0].playerId),
+        parseInt(finales[1].playerId),
+    );
+
+    const resultThird = await compareScores(
+        tercerCuarto[0],
+        tercerCuarto[1],
+        parseInt(tercerCuarto[0].playerId),
+        parseInt(tercerCuarto[1].playerId),
+    );
 
     const rankings = [
-      {rank: 1, player: resultFinal.winner},
-      {rank: 2, player: resultFinal.loser},
-      {rank: 3, player: resultThird.winner},
-      {rank: 4, player: resultThird.loser},
+      {rank: 1, playerId: resultFinal.winner},
+      {rank: 2, playerId: resultFinal.loser},
+      {rank: 3, playerId: resultThird.winner},
+      {rank: 4, playerId: resultThird.loser},
     ];
 
-    for (const {rank, player} of rankings) {
-      await resultadosRef.doc(player.toString()).set({
-        playerId: player,
+    for (const {rank, playerId} of rankings) {
+      const playerDoc = await db.collection("I_MaestroJugadores").
+          doc(playerId.toString()).get();
+
+      if (!playerDoc.exists) {
+        console.warn(`Player ${playerId} not found in I_MaestroJugadores`);
+        continue;
+      }
+
+      const playerData = playerDoc.data();
+
+      await resultadosRef.doc(playerId.toString()).set({
+        playerId,
         rank,
+        name: playerData.name || "",
+        logo: playerData.logo || "",
       });
-      console.log(`✅ Stored player ${player} as rank ${rank}`);
+
+      console.log(`✅ Stored player ${playerId} as rank ${rank}`);
     }
 
     console.log("🏁 I_Resultados created successfully.");
