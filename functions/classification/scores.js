@@ -1,6 +1,9 @@
 const {getFirestore} = require("firebase-admin/firestore");
 const db = getFirestore();
 
+const {getClassificationOrder} = require("../utils/utils");
+const {getActiveTournament} = require("../utils/utils");
+
 
 /**
  * Update the hole scores for a specific player in a
@@ -41,7 +44,16 @@ const compareScores = async (scoreSheet1, scoreSheet2,
       if (score1 > score2) return {winner: playerNumber2, loser: playerNumber1};
     }
 
-    return playerNumber1 < playerNumber2 ?
+    const year = new Date().getFullYear().toString();
+
+    const tournamentId = getActiveTournament(year);
+
+    const order1 = await getClassificationOrder(year,
+        tournamentId, playerNumber1);
+    const order2 = await getClassificationOrder(year,
+        tournamentId, playerNumber2);
+
+    return order1 < order2 ?
       {winner: playerNumber1, loser: playerNumber2} :
       {winner: playerNumber2, loser: playerNumber1};
   }

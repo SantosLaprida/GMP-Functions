@@ -123,4 +123,24 @@ exports.createPlayers = async (db, year, players, tournamentId) => {
 };
 
 
+exports.getClassificationOrder = async (year, tournamentId, playerId) => {
+  try {
+    const querySnapshot = await db.collection("I_Torneos").
+        doc(year).collection("Tournaments").
+        doc(tournamentId).collection("I_Cuartos").doc(playerId).get();
+
+    if (querySnapshot.empty) {
+      console.log("Collection is empty");
+      return;
+    }
+
+    const playerData = querySnapshot.data();
+    return playerData.order;
+  } catch (error) {
+    console.error("Error fetching player order:", error);
+    throw error;
+  }
+};
+
+
 // node testGetActiveTournament.js
