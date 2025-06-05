@@ -101,7 +101,7 @@ exports.createPlayers = async (db, year, players, tournamentId) => {
     for (const player of players) {
       const playerId = player.playerId;
       const rank = playerRanks[playerId] || 0;
-      const logo = playerLogos[playerId];
+      const logo = playerLogos[playerId] || "";
 
       const playerData = {
         firstName: player.firstName,

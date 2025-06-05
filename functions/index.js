@@ -103,51 +103,52 @@ exports.updateRankings = onSchedule("every monday 00:00", async (event) => {
   }
 });
 
-exports.activateTournament = onSchedule("every monday 17:00", async (event) => {
-  const date = new Date();
-  const year = date.getFullYear().toString();
-  try {
-    const activeTournament = await getActiveTournament(year);
-    if (activeTournament.length > 0) {
-      const activeTournamentId = activeTournament[0];
-      const docSnap = await db.collection("I_Torneos").doc(year).
-          collection("Tournaments").doc(activeTournamentId).get();
+exports.activateTournament = onSchedule("every monday 17:00",
+    async (event) => {
+      const date = new Date();
+      const year = date.getFullYear().toString();
+      try {
+        const activeTournament = await getActiveTournament(year);
+        if (activeTournament.length > 0) {
+          const activeTournamentId = activeTournament[0];
+          const docSnap = await db.collection("I_Torneos").doc(year).
+              collection("Tournaments").doc(activeTournamentId).get();
 
-      if (docSnap.exists) {
-        const order = docSnap.data().order;
-        await docSnap.ref.update({
-          activo: 0,
-        });
+          if (docSnap.exists) {
+            const order = docSnap.data().order;
+            await docSnap.ref.update({
+              activo: 0,
+            });
 
-        console.log("Tournament desactivated! ", activeTournamentId);
+            console.log("Tournament desactivated! ", activeTournamentId);
 
-        const nextTournamentId = await getNextTournament(year, order);
-        const documentSnapshot = await db.collection("I_Torneos").doc(year).
-            collection("Tournaments").doc(nextTournamentId).get();
-        await documentSnapshot.ref.update({
-          activo: 1,
-          apuestas: 1,
-          round1: "Not Started",
-          round2: "Not Started",
-          round3: "Not Started",
-          round4: "Not Started",
-        });
-        console.log("Tournament activated ", nextTournamentId);
-        const players = await fetchPlayers(1, nextTournamentId, year);
-        await createPlayers(db, year, players, nextTournamentId);
-      } else {
-        console.log("No document Found.");
-        return;
+            const nextTournamentId = await getNextTournament(year, order);
+            const documentSnapshot = await db.collection("I_Torneos").doc(year).
+                collection("Tournaments").doc(nextTournamentId).get();
+            await documentSnapshot.ref.update({
+              activo: 1,
+              apuestas: 1,
+              round1: "Not Started",
+              round2: "Not Started",
+              round3: "Not Started",
+              round4: "Not Started",
+            });
+            console.log("Tournament activated ", nextTournamentId);
+            const players = await fetchPlayers(1, nextTournamentId, year);
+            await createPlayers(db, year, players, nextTournamentId);
+          } else {
+            console.log("No document Found.");
+            return;
+          }
+        } else {
+          console.log("No active tournaments found...");
+          return;
+        }
+      } catch (error) {
+        console.error("Error activating tournament ", error);
+        throw error;
       }
-    } else {
-      console.log("No active tournaments found...");
-      return;
-    }
-  } catch (error) {
-    console.error("Error activating tournament ", error);
-    throw error;
-  }
-});
+    });
 
 
 // Create and deploy your first functions
