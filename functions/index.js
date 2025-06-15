@@ -41,7 +41,7 @@ exports.processTournamentRounds =
     try {
       await processRounds();
     } catch (error) {
-      logger.error("Error in tournament rounds processing...: ", error);
+      logger.error("Error in tournament rounds processing...!: ", error);
     }
   });
 

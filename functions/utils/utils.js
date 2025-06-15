@@ -125,6 +125,14 @@ exports.createPlayers = async (db, year, players, tournamentId) => {
 
 exports.getClassificationOrder = async (year, tournamentId, playerId) => {
   try {
+    if (!playerId || typeof playerId !== "string" || playerId.trim() === "") {
+      throw new Error(`❌ Invalid playerId passed to 
+        getClassificationOrder: ${playerId}`);
+    }
+
+    console.log("🧪 getClassificationOrder args:",
+        {year, tournamentId, playerId});
+
     const querySnapshot = await db.collection("I_Torneos").
         doc(year).collection("Tournaments").
         doc(tournamentId).collection("I_Cuartos").doc(playerId).get();

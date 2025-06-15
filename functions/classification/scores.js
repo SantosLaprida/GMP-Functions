@@ -18,19 +18,15 @@ const {getActiveTournament} = require("../utils/utils");
 
 const compareScores = async (scoreSheet1, scoreSheet2,
     playerNumber1, playerNumber2) => {
-  console.log("Comparing scores with");
-  console.log(playerNumber1);
-  console.log(playerNumber2);
+  console.log("Comparing scores with", playerNumber1, playerNumber2);
 
   if (!scoreSheet1 || !scoreSheet2) return null;
 
   let result = 0;
 
-
   for (let i = 1; i <= 18; i++) {
     const score1 = scoreSheet1[`H${i}`];
     const score2 = scoreSheet2[`H${i}`];
-
     if (score1 < score2) result++;
     else if (score1 > score2) result--;
   }
@@ -39,19 +35,35 @@ const compareScores = async (scoreSheet1, scoreSheet2,
     for (let i = 1; i <= 18; i++) {
       const score1 = scoreSheet1[`H${i}`];
       const score2 = scoreSheet2[`H${i}`];
-
       if (score1 < score2) return {winner: playerNumber1, loser: playerNumber2};
       if (score1 > score2) return {winner: playerNumber2, loser: playerNumber1};
     }
 
     const year = new Date().getFullYear().toString();
+    const activeTournament = await getActiveTournament(year);
 
-    const tournamentId = getActiveTournament(year);
+    let tournamentId;
 
-    const order1 = await getClassificationOrder(year,
-        tournamentId, playerNumber1);
-    const order2 = await getClassificationOrder(year,
-        tournamentId, playerNumber2);
+
+    if (activeTournament.length > 0) {
+      tournamentId = activeTournament[0];
+    } else {
+      console.log("No active tournament found for year:", year);
+      return null;
+    }
+
+
+    const id1 = playerNumber1 != null ? String(playerNumber1).trim() : "";
+    const id2 = playerNumber2 != null ? String(playerNumber2).trim() : "";
+
+
+    if (!id1 || !id2) {
+      throw new Error(`❌ compareScores: Invalid player IDs: 
+        ${playerNumber1}, ${playerNumber2}`);
+    }
+
+    const order1 = await getClassificationOrder(year, tournamentId, id1);
+    const order2 = await getClassificationOrder(year, tournamentId, id2);
 
     return order1 < order2 ?
       {winner: playerNumber1, loser: playerNumber2} :
@@ -62,6 +74,7 @@ const compareScores = async (scoreSheet1, scoreSheet2,
     {winner: playerNumber1, loser: playerNumber2} :
     {winner: playerNumber2, loser: playerNumber1};
 };
+
 
 const updatePlayerHoleScores = async (playerId, scoreCard,
     tournamentId, year, collectionName) => {

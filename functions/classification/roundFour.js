@@ -3,9 +3,9 @@ const {compareScores} = require("./scores");
 const {getFirestore} = require("firebase-admin/firestore");
 
 const {updatePlayerHoleScores} = require("./scores");
+const {processSemisResults} = require("./resultsProcessing");
 
 const db = getFirestore();
-
 
 const createIResultados = async (year, tournamentId) => {
   const basePath = db
@@ -75,64 +75,12 @@ const createIResultados = async (year, tournamentId) => {
         logo: playerData.logo || "",
       });
 
-      console.log(`✅ Stored player ${playerId} as rank ${rank}`);
+      console.log(`Stored player ${playerId} as rank ${rank}`);
     }
 
     console.log("🏁 I_Resultados created successfully.");
   } catch (error) {
     console.error("❌ Error creating I_Resultados:", error);
-  }
-};
-
-const createIFinales = async (year,
-    tournamentId, collectionName, players) => {
-  if (!Array.isArray(players) || players.length !== 2) {
-    console.error("Player array must contain exactly 2 player IDs.");
-    return;
-  }
-  const basePath = db
-      .collection("I_Torneos")
-      .doc(year)
-      .collection("Tournaments")
-      .doc(tournamentId);
-
-  const sourceCollection = basePath.collection("I_Semifinales");
-  const targetCollection = basePath.collection(collectionName);
-
-  for (let i = 0; i < players.length; i++) {
-    const playerId = players[i].toString();
-
-    try {
-      const docSnap = await sourceCollection.doc(playerId).get();
-
-      if (!docSnap.exists) {
-        console.warn(`Player ${playerId} not found in I_Semifinales.`);
-        continue;
-      }
-
-      const sourceData = docSnap.data();
-
-      const newData = {};
-
-      for (const key in sourceData) {
-        if (!key.startsWith("H") && key !== "order") {
-          newData[key] = sourceData[key];
-        }
-      }
-
-      for (let h = 1; h <= 18; h++) {
-        const holeKey = `H${h.toString().padStart(2, "0")}`;
-        newData[holeKey] = 0;
-      }
-
-      newData.order = i + 1;
-
-      await targetCollection.doc(playerId).set(newData);
-      console.log(`✅ Player ${playerId} added to 
-            ${collectionName} with orden ${i + 1}`);
-    } catch (error) {
-      console.error(`❌ Error processing player ${playerId}:`, error);
-    }
   }
 };
 
@@ -160,8 +108,8 @@ const processRoundFour = async (tournamentId, year) => {
     const tercerCuartoSnapshot = await tercerCuartoRef.get();
 
     if (finalesSnapshot.empty || tercerCuartoSnapshot.empty) {
-      console.warn("Finales or TercerCuarto collection is missing.");
-      return;
+      console.log("Creating I_Finales and I_TercerCuarto collections...");
+      await processSemisResults(year, tournamentId, "I_Semifinales");
     }
 
     const allSnapshots = [
@@ -224,4 +172,4 @@ const processRoundFour = async (tournamentId, year) => {
   }
 };
 
-module.exports = {createIFinales, processRoundFour, createIResultados};
+module.exports = {processRoundFour, createIResultados};
