@@ -25,19 +25,24 @@ const compareScores = async (scoreSheet1, scoreSheet2,
   let result = 0;
 
   for (let i = 1; i <= 18; i++) {
-    const score1 = scoreSheet1[`H${i}`];
-    const score2 = scoreSheet2[`H${i}`];
+    const holeKey = `H${String(i).padStart(2, "0")}`;
+    const score1 = scoreSheet1[holeKey];
+    const score2 = scoreSheet2[holeKey];
+
     if (score1 < score2) result++;
     else if (score1 > score2) result--;
   }
 
   if (result === 0) {
     for (let i = 1; i <= 18; i++) {
-      const score1 = scoreSheet1[`H${i}`];
-      const score2 = scoreSheet2[`H${i}`];
+      const holeKey = `H${String(i).padStart(2, "0")}`;
+      const score1 = scoreSheet1[holeKey];
+      const score2 = scoreSheet2[holeKey];
+
       if (score1 < score2) return {winner: playerNumber1, loser: playerNumber2};
       if (score1 > score2) return {winner: playerNumber2, loser: playerNumber1};
     }
+
 
     const year = new Date().getFullYear().toString();
     const activeTournament = await getActiveTournament(year);

@@ -9,6 +9,11 @@ const {compareScores} = require("./scores");
 const db = getFirestore();
 
 const processCuartosResults = async (year, tournamentId, collectionName) => {
+  if (collectionName !== "I_Cuartos") {
+    console.error("Invalid collection name:", collectionName);
+    return;
+  }
+
   try {
     const collectionRef = db
         .collection("I_Torneos")
@@ -38,6 +43,7 @@ const processCuartosResults = async (year, tournamentId, collectionName) => {
           playersData.length);
       return;
     }
+
     playersData.sort((a, b) => a.order - b.order);
 
     const matchups = [
@@ -48,7 +54,6 @@ const processCuartosResults = async (year, tournamentId, collectionName) => {
     ];
 
     const winners = [];
-    const losers = [];
 
     for (const [i1, i2] of matchups) {
       const p1 = playersData[i1];
@@ -62,7 +67,6 @@ const processCuartosResults = async (year, tournamentId, collectionName) => {
       );
 
       winners.push(result.winner.toString());
-      losers.push(result.loser.toString());
 
       console.log(`Match: ${p1.id} vs ${p2.id} -> Winner: ${result.winner}`);
     }
@@ -74,6 +78,7 @@ const processCuartosResults = async (year, tournamentId, collectionName) => {
     console.error("Error processing cuartos results: ", error);
   }
 };
+
 
 const createIcuartos = async (clasificacionSnapshot, cuartosRef, limit = 8) => {
   try {
@@ -169,6 +174,12 @@ const processRoundTwo = async (tournamentId, year) => {
           });
 
           console.log("Hole Updates:", holeUpdates);
+
+          if (Object.keys(holeUpdates).length === 0) {
+            console.warn(`No valid hole scores to update for player 
+              ${playerId}`);
+            return;
+          }
 
           await updatePlayerHoleScores(playerId, holeUpdates,
               tournamentId, year, collectionName);
