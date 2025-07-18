@@ -10,19 +10,19 @@
 // const {onRequest} = require("firebase-functions/v2/https");
 // const logger = require("firebase-functions/logger");
 // const functions = require("firebase-functions/v2");
-const { onSchedule } = require("firebase-functions/v2/scheduler");
+const {onSchedule} = require("firebase-functions/v2/scheduler");
 const admin = require("firebase-admin");
 
 admin.initializeApp();
 
-const { getFirestore } = require("firebase-admin/firestore");
-const { logger } = require("firebase-functions");
+const {getFirestore} = require("firebase-admin/firestore");
+const {logger} = require("firebase-functions");
 
-const { fetchRankings, fetchPlayers } = require("./api/golfApi");
-const { processRounds } = require("./classification/rounds");
-const { getActiveTournament } = require("./utils/utils");
-const { getNextTournament } = require("./utils/utils");
-const { createPlayers } = require("./utils/utils");
+const {fetchRankings, fetchPlayers} = require("./api/golfApi");
+const {processRounds} = require("./classification/rounds");
+const {getActiveTournament} = require("./utils/utils");
+const {getNextTournament} = require("./utils/utils");
+const {createPlayers} = require("./utils/utils");
 // const {initializeApp} = require("firebase-admin/app");
 
 const db = getFirestore();
@@ -36,14 +36,14 @@ exports.processTournamentEndings = onSchedule("08 0-4 * * 1", async (event) => {
 });
 
 exports.processTournamentRounds = onSchedule(
-  "*/30 * * * 4-7",
-  async (event) => {
-    try {
-      await processRounds();
-    } catch (error) {
-      logger.error("Error in tournament rounds processing...: ", error);
-    }
-  }
+    "*/30 * * * 4-7",
+    async (event) => {
+      try {
+        await processRounds();
+      } catch (error) {
+        logger.error("Error in tournament rounds processing...: ", error);
+      }
+    },
 );
 
 exports.finishBets = onSchedule("every thursday 03:00", async (event) => {
@@ -54,11 +54,11 @@ exports.finishBets = onSchedule("every thursday 03:00", async (event) => {
     if (activeTournament.length > 0) {
       const activeTournamentId = activeTournament[0];
       const docSnap = await db
-        .collection("I_Torneos")
-        .doc(year)
-        .collection("Tournaments")
-        .doc(activeTournamentId)
-        .get();
+          .collection("I_Torneos")
+          .doc(year)
+          .collection("Tournaments")
+          .doc(activeTournamentId)
+          .get();
 
       if (docSnap.exists) {
         docSnap.ref.update({
@@ -89,16 +89,16 @@ exports.updateRankings = onSchedule("every monday 00:00", async (event) => {
 
     for (const player of rankings) {
       const playerDocRef = db
-        .collection("I_MaestroJugadores")
-        .doc(player.playerId);
+          .collection("I_MaestroJugadores")
+          .doc(player.playerId);
       await playerDocRef.set(
-        {
-          lastname: player.lastName,
-          firstname: player.firstName,
-          name: player.fullName,
-          ranking: player.rank,
-        },
-        { merge: true }
+          {
+            lastname: player.lastName,
+            firstname: player.firstName,
+            name: player.fullName,
+            ranking: player.rank,
+          },
+          {merge: true},
       );
     }
     console.log("Rankings updated successfully");
@@ -116,11 +116,11 @@ exports.activateTournament = onSchedule("every monday 17:00", async (event) => {
     if (activeTournament.length > 0) {
       const activeTournamentId = activeTournament[0];
       const docSnap = await db
-        .collection("I_Torneos")
-        .doc(year)
-        .collection("Tournaments")
-        .doc(activeTournamentId)
-        .get();
+          .collection("I_Torneos")
+          .doc(year)
+          .collection("Tournaments")
+          .doc(activeTournamentId)
+          .get();
 
       if (docSnap.exists) {
         const order = docSnap.data().order;
@@ -132,11 +132,11 @@ exports.activateTournament = onSchedule("every monday 17:00", async (event) => {
 
         const nextTournamentId = await getNextTournament(year, order);
         const documentSnapshot = await db
-          .collection("I_Torneos")
-          .doc(year)
-          .collection("Tournaments")
-          .doc(nextTournamentId)
-          .get();
+            .collection("I_Torneos")
+            .doc(year)
+            .collection("Tournaments")
+            .doc(nextTournamentId)
+            .get();
         await documentSnapshot.ref.update({
           activo: 1,
           apuestas: 1,

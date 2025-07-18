@@ -4,6 +4,7 @@ const {getFirestore} = require("firebase-admin/firestore");
 
 const {updatePlayerHoleScores} = require("./scores");
 const {processSemisResults} = require("./resultsProcessing");
+const {addLogosToMaestroJugadores} = require("../utils/utils");
 
 const db = getFirestore();
 
@@ -58,8 +59,10 @@ const createIResultados = async (year, tournamentId) => {
     ];
 
     for (const {rank, playerId} of rankings) {
-      const playerDoc = await db.collection("I_MaestroJugadores").
-          doc(playerId.toString()).get();
+      const playerDoc = await db
+          .collection("I_MaestroJugadores")
+          .doc(playerId.toString())
+          .get();
 
       if (!playerDoc.exists) {
         console.warn(`Player ${playerId} not found in I_MaestroJugadores`);
@@ -98,8 +101,11 @@ const processRoundFour = async (tournamentId, year) => {
       return;
     }
 
-    const baseRef = db.collection("I_Torneos").doc(year)
-        .collection("Tournaments").doc(tournamentId);
+    const baseRef = db
+        .collection("I_Torneos")
+        .doc(year)
+        .collection("Tournaments")
+        .doc(tournamentId);
 
     const finalesRef = baseRef.collection(collectionNameWinners);
     const tercerCuartoRef = baseRef.collection(collectionNameLosers);
@@ -123,8 +129,13 @@ const processRoundFour = async (tournamentId, year) => {
         const playerId = playerData.playerId;
         const playerDocRef = baseRef.collection(collectionName).doc(doc.id);
 
-        const scoreCard = await fetchScoreCard(1, tournamentId,
-            year, playerId, 4);
+        const scoreCard = await fetchScoreCard(
+            1,
+            tournamentId,
+            year,
+            playerId,
+            4,
+        );
 
         if (scoreCard && scoreCard.length > 0) {
           const playerScoreCard = scoreCard[0];
@@ -138,8 +149,13 @@ const processRoundFour = async (tournamentId, year) => {
               holeUpdates[holeField] = hole.holeScore;
             });
 
-            await updatePlayerHoleScores(playerId, holeUpdates,
-                tournamentId, year, collectionName);
+            await updatePlayerHoleScores(
+                playerId,
+                holeUpdates,
+                tournamentId,
+                year,
+                collectionName,
+            );
             console.log(`Updated hole scores for player 
                 ${playerData.firstName} ${playerData.lastName}`);
 
@@ -161,6 +177,7 @@ const processRoundFour = async (tournamentId, year) => {
     if (["Complete", "Suspended", "Official"].includes(roundStatus)) {
       await baseRef.update({round4: "Complete"});
       await createIResultados(year, tournamentId);
+      await addLogosToMaestroJugadores(year, tournamentId);
       console.log("✅ Round 4 marked as Complete.");
     } else {
       console.log("Round 4 still in progress.");

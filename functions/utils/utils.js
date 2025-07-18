@@ -4,12 +4,44 @@ const admin = require("firebase-admin");
 
 const db = getFirestore();
 
+exports.addLogosToMaestroJugadores = async (year, tournamentId) => {
+  try {
+    const cuartosRef = db
+        .collection("I_Torneos")
+        .doc(year)
+        .collection("Tournaments")
+        .doc(tournamentId)
+        .collection("I_Cuartos");
+
+    const snapshot = await cuartosRef.get();
+    if (snapshot.empty) {
+      console.log("No players found in I_Cuartos collection");
+      return;
+    }
+
+    for (const doc of snapshot.docs) {
+      const playerData = doc.data();
+      const playerId = playerData.playerId || doc.id;
+      const logo = playerData.logo || "";
+
+      if (!logo || !playerId) {
+        console.warn(`Skipping player: missing logo or idPlayer`, doc.id);
+        continue;
+      }
+
+      const maestroRef = db.collection("I_MaestroJugadores").doc(playerId);
+      await maestroRef.update({logo: logo});
+      console.log(`✅ Updated logo for player ${playerId}`);
+    }
+  } catch (error) {
+    console.error("Error adding logos to Maestro Jugadores: ", error);
+  }
+};
 
 exports.getLogoByPlayerId = async (playerId) => {
   try {
     const id = String(playerId);
-    const playerDoc = await db.collection("I_MaestroJugadores").
-        doc(id).get();
+    const playerDoc = await db.collection("I_MaestroJugadores").doc(id).get();
 
     if (playerDoc.exists) {
       const data = playerDoc.data();
@@ -26,9 +58,12 @@ exports.getLogoByPlayerId = async (playerId) => {
 
 exports.getActiveTournament = async (year) => {
   try {
-    const querySnap = await db.collection("I_Torneos").
-        doc(year).collection("Tournaments")
-        .where("activo", "==", 1).get();
+    const querySnap = await db
+        .collection("I_Torneos")
+        .doc(year)
+        .collection("Tournaments")
+        .where("activo", "==", 1)
+        .get();
     if (querySnap.empty) {
       console.log("No active tournament found");
       return [];
@@ -43,7 +78,9 @@ exports.getActiveTournament = async (year) => {
 
 exports.getNextTournament = async (year, order) => {
   try {
-    const querySnap = await db.collection("I_Torneos").doc(year)
+    const querySnap = await db
+        .collection("I_Torneos")
+        .doc(year)
         .collection("Tournaments")
         .where("order", ">", order)
         .orderBy("order")
@@ -61,8 +98,10 @@ exports.getNextTournament = async (year, order) => {
     for (const doc of querySnap.docs) {
       const data = doc.data();
 
-      if (!data.activation_date ||
-        !(data.activation_date instanceof admin.firestore.Timestamp)) {
+      if (
+        !data.activation_date ||
+        !(data.activation_date instanceof admin.firestore.Timestamp)
+      ) {
         continue;
       }
 
@@ -82,13 +121,14 @@ exports.getNextTournament = async (year, order) => {
   }
 };
 
-
 exports.createPlayers = async (db, year, players, tournamentId) => {
   try {
-    const tournamentDocRef = db.collection("I_Torneos").doc(year)
-        .collection("Tournaments").doc(tournamentId);
-    const playerDocs = await db.collection("I_MaestroJugadores")
-        .get();
+    const tournamentDocRef = db
+        .collection("I_Torneos")
+        .doc(year)
+        .collection("Tournaments")
+        .doc(tournamentId);
+    const playerDocs = await db.collection("I_MaestroJugadores").get();
 
     const playerRanks = {};
     const playerLogos = {};
@@ -113,15 +153,16 @@ exports.createPlayers = async (db, year, players, tournamentId) => {
         logo: logo,
       };
 
-      await tournamentDocRef.collection("I_Players").doc(playerId).
-          set(playerData);
+      await tournamentDocRef
+          .collection("I_Players")
+          .doc(playerId)
+          .set(playerData);
     }
     console.log("All players created successfully!");
   } catch (error) {
     console.error("Problem creating I_Players", error);
   }
 };
-
 
 exports.getClassificationOrder = async (year, tournamentId, playerId) => {
   try {
@@ -130,12 +171,20 @@ exports.getClassificationOrder = async (year, tournamentId, playerId) => {
         getClassificationOrder: ${playerId}`);
     }
 
-    console.log("🧪 getClassificationOrder args:",
-        {year, tournamentId, playerId});
+    console.log("🧪 getClassificationOrder args:", {
+      year,
+      tournamentId,
+      playerId,
+    });
 
-    const querySnapshot = await db.collection("I_Torneos").
-        doc(year).collection("Tournaments").
-        doc(tournamentId).collection("I_Cuartos").doc(playerId).get();
+    const querySnapshot = await db
+        .collection("I_Torneos")
+        .doc(year)
+        .collection("Tournaments")
+        .doc(tournamentId)
+        .collection("I_Cuartos")
+        .doc(playerId)
+        .get();
 
     if (querySnapshot.empty) {
       console.log("Collection is empty");
@@ -149,6 +198,5 @@ exports.getClassificationOrder = async (year, tournamentId, playerId) => {
     throw error;
   }
 };
-
 
 // node testGetActiveTournament.js
