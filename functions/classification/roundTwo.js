@@ -91,7 +91,7 @@ const createIcuartos = async (clasificacionSnapshot, cuartosRef, limit = 8) => {
       const playerData = doc.data();
       const playerId = playerData.playerId;
 
-      const logo = await getLogoByPlayerId(playerId);
+      const logo = await getLogoByPlayerId(playerId) || "";
       const playerDocRef = cuartosRef.doc(playerId);
 
       await playerDocRef.set({

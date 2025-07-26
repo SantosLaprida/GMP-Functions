@@ -1,9 +1,8 @@
-
 const {fetchLeaderBoard} = require("../api/golfApi");
 const {getFirestore} = require("firebase-admin/firestore");
+const {createIcuartos} = require("./roundTwo");
 
 const db = getFirestore();
-
 
 exports.processClassification = async (tournamentId, year) => {
   try {
@@ -30,15 +29,13 @@ exports.processClassification = async (tournamentId, year) => {
       await doc.ref.delete();
     });
 
-
     for (let i = 0; i < topPlayers.length; i++) {
       const player = topPlayers[i];
 
-      const rawThru = typeof player.thru === "string" ?
-        player.thru.trim().toUpperCase() : "";
-      const holesPlayed =
-        rawThru.startsWith("F") ? 18 :
-          parseInt(rawThru.replace(/\D/g, "")) || 0;
+      const rawThru =
+        typeof player.thru === "string" ? player.thru.trim().toUpperCase() : "";
+      const holesPlayed = rawThru.startsWith("F") ? 18 :
+      parseInt(rawThru.replace(/\D/g, "")) || 0;
 
       await playersCollectionRef.add({
         playerId: player.playerId,
@@ -53,18 +50,25 @@ exports.processClassification = async (tournamentId, year) => {
       });
     }
 
-    if (roundStatus === "Complete" || roundStatus === "Suspended" ||
-        roundStatus === "Official") {
-      const tournamentRef = db.collection("I_Torneos").doc(year).
-          collection("Tournaments").doc(tournamentId);
+    if (
+      roundStatus === "Complete" ||
+      roundStatus === "Suspended" ||
+      roundStatus === "Official"
+    ) {
+      const tournamentRef = db
+          .collection("I_Torneos")
+          .doc(year)
+          .collection("Tournaments")
+          .doc(tournamentId);
       await tournamentRef.update({
         round1: "Complete",
       });
       console.log("Round 1 marked as Complete.");
+      await createIcuartos(tournamentId, year);
+      console.log("I_Cuartos created successfully.");
     } else {
       console.log("Round 1 is still in progress. Not updating the status.");
     }
-
     console.log("Classification processed successfully.");
   } catch (error) {
     console.error("Error processing classification:", error);
