@@ -122,13 +122,8 @@ const createIcuartos = async (clasificacionSnapshot, cuartosRef, limit = 8) => {
 const processRoundTwo = async (tournamentId, year) => {
   try {
     const leaderBoardData = await fetchLeaderBoard(1, tournamentId, year);
-    const roundId = leaderBoardData.roundId;
     const roundStatus = leaderBoardData.roundStatus;
     const collectionName = "I_Cuartos";
-    if (roundId !== 2 || roundStatus === "Not Started") {
-      console.log("The round is not In Progress or not round 2, skipping...");
-      return;
-    }
 
     const clasificacionRef = db.collection("I_Torneos").doc(year).
         collection("Tournaments").doc(tournamentId).
@@ -203,7 +198,7 @@ const processRoundTwo = async (tournamentId, year) => {
       }
     }
 
-    if (roundStatus === "Complete" || roundStatus === "Suspended" ||
+    if (roundStatus === "Complete" ||
       roundStatus === "Official") {
       const tournamentRef = db.collection("I_Torneos").doc(year).
           collection("Tournaments").doc(tournamentId);
@@ -215,7 +210,6 @@ const processRoundTwo = async (tournamentId, year) => {
     } else {
       console.log("Round 2 is still in progress. Not updating the status.");
     }
-
     console.log("Round 2 processed successfully.");
   } catch (error) {
     console.error("Error processing round 2: ", error);

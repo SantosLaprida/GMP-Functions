@@ -31,7 +31,7 @@ exports.processTournamentEndings = onSchedule("08 0-4 * * 1", async (event) => {
   try {
     await processRounds();
   } catch (error) {
-    logger.error("Error inside process tournament endings!!: ", error);
+    logger.error("Error inside process tournament endings: ", error);
   }
 });
 
