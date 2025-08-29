@@ -1,4 +1,5 @@
 npm run lint -- --fix
+npx eslint . --ext .js --fix
 
 npm run lint
 

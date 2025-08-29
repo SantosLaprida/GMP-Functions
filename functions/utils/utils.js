@@ -121,6 +121,22 @@ exports.getNextTournament = async (year, order) => {
   }
 };
 
+exports.getApuestasUsers = async (year, tournamentId) => {
+  try {
+    const querySnapshot = await db
+        .collection("I_Torneos")
+        .doc(year)
+        .collection("Tournaments")
+        .doc(tournamentId)
+        .collection("I_Apuestas")
+        .get();
+
+    return querySnapshot.docs.map((doc) => doc.id);
+  } catch (error) {
+    console.error("Error fetching users with no bets: ", error);
+  }
+};
+
 exports.createPlayers = async (db, year, players, tournamentId) => {
   try {
     const tournamentDocRef = db
