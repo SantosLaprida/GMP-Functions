@@ -137,6 +137,51 @@ exports.getApuestasUsers = async (year, tournamentId) => {
   }
 };
 
+exports.getLastTournamentOrder = async (year) => {
+  try {
+    const activeSnap = await db
+      .collection("I_Torneos")
+      .doc(year)
+      .collection("Tournaments")
+      .where("activo", "==", 1)
+      .limit(1)
+      .get();
+
+    if (!activeSnap.empty) {
+      const activeDoc = activeSnap.docs[0];
+      const activeOrder = activeDoc.data()?.order;
+      if (typeof activeOrder === "number") return activeOrder;
+
+      console.warn("Active tournament found but missing 'order' field.");
+      return null;
+    }
+
+    const pastSnap = await db
+      .collection("I_Torneos")
+      .doc(year)
+      .collection("Past_Tournaments")
+      .orderBy("order", "desc")
+      .limit(1)
+      .get();
+
+    if (pastSnap.empty) {
+      console.log("No past tournaments found.");
+      return null;
+    }
+
+    const lastOrder = pastSnap.docs[0].data()?.order;
+    if (typeof lastOrder === "number") return lastOrder;
+
+    console.warn("Last past tournament missing 'order' field.");
+    return null;
+
+  } catch (error) {
+    console.error("Error fetching last tournament order:", error);
+    throw error; // rethrow so callers can handle it
+  }
+};
+
+
 exports.createPlayers = async (db, year, players, tournamentId) => {
   try {
     const tournamentDocRef = db

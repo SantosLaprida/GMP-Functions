@@ -24,7 +24,8 @@ const {getActiveTournament} = require("./utils/utils");
 const {getNextTournament} = require("./utils/utils");
 const {createPlayers} = require("./utils/utils");
 const {getApuestasUsers} = require("./utils/utils");
-const { Expo } = require("expo-server-sdk");
+const {getLastTournamentOrder} = require("./utils/utils");
+const {Expo} = require("expo-server-sdk");
 // const {initializeApp} = require("firebase-admin/app");
 
 const db = getFirestore();
@@ -111,64 +112,78 @@ exports.updateRankings = onSchedule("every monday 00:00", async (event) => {
   }
 });
 
-exports.activateTournament = onSchedule("every monday 17:00", async (event) => {
-  const date = new Date();
-  const year = date.getFullYear().toString();
-  try {
-    const activeTournament = await getActiveTournament(year);
-    if (activeTournament.length > 0) {
-      const activeTournamentId = activeTournament[0];
-      const docSnap = await db
+exports.activateTournament = onSchedule(
+  "every monday 17:00",
+  async (event) => {
+    const year = new Date().getFullYear().toString();
+
+    try {
+      const activeTournament = await getActiveTournament(year);
+
+      if (activeTournament.length > 0) {
+        const activeTournamentId = activeTournament[0];
+        const activeDocSnap = await db
           .collection("I_Torneos")
           .doc(year)
           .collection("Tournaments")
           .doc(activeTournamentId)
           .get();
 
-      if (docSnap.exists) {
-        const order = docSnap.data().order;
-        await docSnap.ref.update({
-          activo: 0,
-        });
-
-        console.log("Tournament desactivated! ", activeTournamentId);
-
-        const nextTournamentId = await getNextTournament(year, order);
-        const documentSnapshot = await db
-            .collection("I_Torneos")
-            .doc(year)
-            .collection("Tournaments")
-            .doc(nextTournamentId)
-            .get();
-        await documentSnapshot.ref.update({
-          activo: 1,
-          apuestas: 1,
-          round1: "Not Started",
-          round2: "Not Started",
-          round3: "Not Started",
-          round4: "Not Started",
-        });
-        console.log("Tournament activated ", nextTournamentId);
-        const players = await fetchPlayers(1, nextTournamentId, year);
-        const amountPlayers = players.length;
-        const minimoApuestas = Math.floor(amountPlayers / 10);
-        await documentSnapshot.ref.update({
-          minimoApuestas: minimoApuestas,
-        });
-        await createPlayers(db, year, players, nextTournamentId);
+        if (activeDocSnap.exists) {
+          await activeDocSnap.ref.update({ activo: 0 });
+          console.log("Tournament deactivated:", activeTournamentId);
+        } else {
+          console.log("Active tournament ID not found in Firestore:", activeTournamentId);
+        }
       } else {
-        console.log("No document Found.");
+        console.log("No active tournament found — will just activate the next one.");
+      }
+      const lastOrder = await getLastTournamentOrder(year);
+      const nextTournamentId = await getNextTournament(year, lastOrder);
+
+      if (!nextTournamentId) {
+        console.log("No next tournament found for year:", year);
         return;
       }
-    } else {
-      console.log("No active tournaments found...");
-      return;
+
+      const nextDocRef = db
+        .collection("I_Torneos")
+        .doc(year)
+        .collection("Tournaments")
+        .doc(nextTournamentId);
+
+      const nextDocSnap = await nextDocRef.get();
+      if (!nextDocSnap.exists) {
+        console.log("Next tournament doc not found:", nextTournamentId);
+        return;
+      }
+
+      await nextDocRef.update({
+        activo: 1,
+        apuestas: 1,
+        round1: "Not Started",
+        round2: "Not Started",
+        round3: "Not Started",
+        round4: "Not Started",
+      });
+      console.log("Tournament activated:", nextTournamentId);
+
+      const players = await fetchPlayers(1, nextTournamentId, year);
+      const amountPlayers = players.length;
+      const minimoApuestas = Math.floor(amountPlayers / 10);
+
+      await nextDocRef.update({ minimoApuestas });
+      await createPlayers(db, year, players, nextTournamentId);
+
+      console.log("Players loaded for tournament:", nextTournamentId);
+
+    } catch (error) {
+      console.error("Error activating tournament:", error);
+      throw error;
     }
-  } catch (error) {
-    console.error("Error activating tournament ", error);
-    throw error;
   }
-});
+);
+
 
 exports.sendWeeklyReminders = onSchedule(
     "every wednesday 18:00",
@@ -196,7 +211,6 @@ exports.sendWeeklyReminders = onSchedule(
           const usersWhoBetSet = new Set(usersMadeBet);
 
           const messages = [];
-          let remindersSent = 0;
 
           for (const userDoc of userSnapshot.docs) {
             const userId = userDoc.id;
@@ -208,22 +222,22 @@ exports.sendWeeklyReminders = onSchedule(
                 messages.push({
                   to: pushToken,
                   sound: "default",
-                  body: "Players selection for this tournament ends soon!",
-                  data: {withSome: "data"},
+                  title: "Reminder",
+                  body: "Selections close Wednesday 9pm — set your team!",
+                  channelId: "weekly reminders",
                 });
-                remindersSent++;
               } else {
-                console.warn(`Invalid or missing Expo push token for user ${userId}`);
+                console.warn(`
+                  Invalid or missing Expo push token for user ${userId}`);
               }
             }
           }
           if (messages.length === 0) {
-            console.log
-            ("No users need betting reminders (everyone has bet or no valid tokens)");
+            console.log("No users need betting reminders");
             return;
           }
 
-          console.log(`Sending ${messages.length} bet reminder notifications...`);
+          console.log(`Sending ${messages.length} notifications...`);
 
           const chunks = expo.chunkPushNotifications(messages);
           const tickets = [];
@@ -244,7 +258,8 @@ exports.sendWeeklyReminders = onSchedule(
             const ticket = tickets[i];
             if (ticket.status === "error") {
               console.error(`Error in ticket ${i}:`, ticket.message);
-              if (ticket.details && ticket.details.error === "DeviceNotRegistered") {
+              if (ticket.details &&
+                ticket.details.error === "DeviceNotRegistered") {
                 console.log(`Push token is no longer valid for a user`);
               }
             } else if (ticket.status === "ok") {
@@ -253,7 +268,8 @@ exports.sendWeeklyReminders = onSchedule(
           }
 
           console.log(`Weekly reminder job completed:`);
-          console.log(`- Users with notification permission: ${userSnapshot.size}`);
+          console.log(`- Users with notification permission: 
+            ${userSnapshot.size}`);
           console.log(`- Users who already bet: ${usersMadeBet.length}`);
           console.log(`- Reminders sent: ${messages.length}`);
           console.log(`- Successful deliveries: ${successCount}`);
